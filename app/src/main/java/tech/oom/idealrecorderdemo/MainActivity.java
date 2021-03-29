@@ -50,11 +50,11 @@ public class MainActivity extends AppCompatActivity {
                             rationale.resume();
                         }
                     }).setNegativeButton("我是拒绝的", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    rationale.cancel();
-                }
-            }).create().show();
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            rationale.cancel();
+                        }
+                    }).create().show();
         }
     };
 
