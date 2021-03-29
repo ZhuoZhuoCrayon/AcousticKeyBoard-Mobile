@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="IdealRecorder.app" target="15" />
+      <module name="IdealRecorder.library" target="15" />
+    </bytecodeTargetLevel>
+  </component>
+</project>
