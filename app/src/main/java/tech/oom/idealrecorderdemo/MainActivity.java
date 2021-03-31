@@ -29,6 +29,7 @@ import tech.oom.idealrecorderdemo.widget.WaveView;
 
 public class MainActivity extends AppCompatActivity {
 
+    private int count;
     private Button recordBtn;
     private WaveView waveView;
     private WaveLineView waveLineView;
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
 
     private IdealRecorder.RecordConfig recordConfig;
 
-    private RationaleListener rationaleListener = new RationaleListener() {
+    private final RationaleListener rationaleListener = new RationaleListener() {
         @Override
         public void showRequestPermissionRationale(int requestCode, final Rationale rationale) {
             com.yanzhenjie.alertdialog.AlertDialog.newBuilder(MainActivity.this)
@@ -59,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
-    private StatusListener statusListener = new StatusListener() {
+    private final StatusListener statusListener = new StatusListener() {
         @Override
         public void onStartRecording() {
             waveLineView.startAnim();
@@ -72,7 +73,13 @@ public class MainActivity extends AppCompatActivity {
             for (int i = 0; i < length; i += 60) {
                 waveView.addData(data[i]);
             }
-            Log.d("MainActivity", "current buffer size is " + length);
+            for (short signal: data)
+                System.out.print(signal + " ");
+            System.out.println();
+            synchronized (this) {
+                ++count;
+                Log.d("MainActivity", "current buffer size -> " + length + ", count -> " + count);
+            }
         }
 
         @Override
@@ -105,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
-    private PermissionListener listener = new PermissionListener() {
+    private final PermissionListener permissionListener = new PermissionListener() {
         @Override
         public void onSucceed(int requestCode, List<String> grantedPermissions) {
 
@@ -132,6 +139,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        count = 0;
         recordBtn = (Button) findViewById(R.id.register_record_btn);
         waveView = (WaveView) findViewById(R.id.wave_view);
         waveLineView = (WaveLineView) findViewById(R.id.waveLineView);
@@ -169,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
         AndPermission.with(this)
                 .requestCode(100)
                 .permission(Permission.MICROPHONE, Permission.STORAGE)
-                .rationale(rationaleListener).callback(listener).start();
+                .rationale(rationaleListener).callback(permissionListener).start();
 
     }
 
