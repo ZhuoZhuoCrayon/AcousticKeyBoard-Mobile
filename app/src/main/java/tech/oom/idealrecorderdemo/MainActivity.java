@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onRecordData(short[] data, int length) {
 
-            for (int i = 0; i < length; i += 60) {
+            for (int i = 0; i < length; i += 20) {
                 waveView.addData(data[i]);
             }
             for (short signal: data)
