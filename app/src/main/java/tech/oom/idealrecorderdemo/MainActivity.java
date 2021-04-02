@@ -31,10 +31,12 @@ import tech.oom.idealrecorderdemo.widget.WaveView;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final int maxSaveAudioNum = 10;
+    private static final boolean saveAudio = false;
+
     private int count;
     private int saveAudioCount;
     private boolean isRecording;
+
     private Button recordBtn;
     private WaveView waveView;
     private WaveLineView waveLineView;
@@ -127,7 +129,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onStopRecording() {
-            tips.setText("Hello World");
+            tips.setText("监听结束");
+            recordBtn.setText("启动识别");
+            recordBtn.setBackground(getResources().getDrawable(R.drawable.recorder_btn));
             waveLineView.stopAnim();
         }
     };
@@ -240,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
         idealRecorder.setRecordFilePath(getSaveFilePath());
 //        idealRecorder.setWavFormat(false);
         //设置录音配置 最长录音时长 以及音量回调的时间间隔
-        idealRecorder.setRecordConfig(recordConfig).setMaxRecordTime(20000).setVolumeInterval(200);
+        idealRecorder.setRecordConfig(recordConfig).setMaxRecordTime(1000 * 60 * 10).setVolumeInterval(200);
         //设置录音时各种状态的监听
         idealRecorder.setStatusListener(statusListener);
         idealRecorder.start(); //开始录音
@@ -253,11 +257,14 @@ public class MainActivity extends AppCompatActivity {
      * @return
      */
     private String getSaveFilePath() {
+        if (!saveAudio) return null;
+
         File file = new File(Environment.getExternalStorageDirectory(), "Audio");
         if (!file.exists()) {
             file.mkdirs();
         }
-        this.saveAudioCount = (this.saveAudioCount + 1) % this.maxSaveAudioNum;
+        int maxSaveAudioNum = 10;
+        this.saveAudioCount = (this.saveAudioCount + 1) % maxSaveAudioNum;
         File wavFile = new File(file, "signal-" + this.saveAudioCount + ".wav");
         String savePath = wavFile.getAbsolutePath();
         Log.d("getSaveFilePath", "saveFilePath -> " + savePath);
