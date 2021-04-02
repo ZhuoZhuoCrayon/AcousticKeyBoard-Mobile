@@ -44,6 +44,20 @@ public class MainActivity extends AppCompatActivity {
 
     private IdealRecorder.RecordConfig recordConfig;
 
+
+    // shortcut data
+    private short[] fragmentationData;
+
+    private Runnable showSignalRunnable = new Runnable() {
+
+        @Override
+        public void run() {
+            for (int i = 0; i < fragmentationData.length; i += 20) {
+                waveView.addData(fragmentationData[i]);
+            }
+        }
+    };
+
     private final RationaleListener rationaleListener = new RationaleListener() {
         @Override
         public void showRequestPermissionRationale(int requestCode, final Rationale rationale) {
@@ -75,9 +89,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onRecordData(short[] data, int length) {
 
-            for (int i = 0; i < length; i += 20) {
-                waveView.addData(data[i]);
-            }
+            fragmentationData = data;
+
+            // 开线程记录
+            new Thread(showSignalRunnable).start();
+
             for (short signal: data)
                 System.out.print(signal + " ");
             System.out.println();
@@ -111,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onStopRecording() {
-            tips.setText("AAAAAAAAAAAAAAAAAAdsgsifdgjoivasdnogivaisdbopvifandpbinpianefdibniofenioneoinbeorinoienrnernesfgwhfsbdoaijdadhgsibu lfnailudsvbnaiugsidovbnsdfigwbargsoibiwrgiuabgriuebiruebgiurbiurebiubreigbreibgrebgrebguirebigrbegregrugrbgrireggbgbgrugrbegbugerbgeriegrigrbgber");
+            tips.setText("Hello World");
             waveLineView.stopAnim();
         }
     };
@@ -157,6 +173,9 @@ public class MainActivity extends AppCompatActivity {
 
         isRecording = false;
 
+        // shortcut data
+        fragmentationData = null;
+
         recordBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -166,9 +185,9 @@ public class MainActivity extends AppCompatActivity {
                         recordBtn.setText("正在监听");
                         recordBtn.setBackground(getResources().getDrawable(R.drawable.recorder_btn_r));
                     } else {
-                        stopRecord();
                         recordBtn.setText("启动识别");
                         recordBtn.setBackground(getResources().getDrawable(R.drawable.recorder_btn));
+                        stopRecord();
                     }
                     isRecording = !isRecording;
                 }
