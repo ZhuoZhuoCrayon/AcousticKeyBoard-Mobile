@@ -6,8 +6,10 @@ import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
+import android.text.method.ScrollingMovementMethod;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,7 +31,10 @@ import tech.oom.idealrecorderdemo.widget.WaveView;
 
 public class MainActivity extends AppCompatActivity {
 
+    private final int maxSaveAudioNum = 10;
     private int count;
+    private int saveAudioCount;
+    private boolean isRecording;
     private Button recordBtn;
     private WaveView waveView;
     private WaveLineView waveLineView;
@@ -106,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onStopRecording() {
-            tips.setText("录音结束");
+            tips.setText("AAAAAAAAAAAAAAAAAAdsgsifdgjoivasdnogivaisdbopvifandpbinpianefdibniofenioneoinbeorinoienrnernesfgwhfsbdoaijdadhgsibu lfnailudsvbnaiugsidovbnsdfigwbargsoibiwrgiuabgriuebiruebgiurbiurebiubreigbreibgrebgrebguirebigrbegregrugrbgrireggbgbgrugrbegbugerbgeriegrigrbgber");
             waveLineView.stopAnim();
         }
     };
@@ -140,31 +145,58 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         count = 0;
+        saveAudioCount = 0;
         recordBtn = (Button) findViewById(R.id.register_record_btn);
         waveView = (WaveView) findViewById(R.id.wave_view);
         waveLineView = (WaveLineView) findViewById(R.id.waveLineView);
         tips = (TextView) findViewById(R.id.tips);
         idealRecorder = IdealRecorder.getInstance();
-        recordBtn.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                readyRecord();
-                return true;
-            }
-        });
-        recordBtn.setOnTouchListener(new View.OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                int action = event.getAction();
-                switch (action) {
-                    case MotionEvent.ACTION_UP:
-                        stopRecord();
-                        return false;
 
+        tips.setMovementMethod(new ScrollingMovementMethod());
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
+
+        isRecording = false;
+
+        recordBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                synchronized (this) {
+                    if (!isRecording) {
+                        readyRecord();
+                        recordBtn.setText("正在监听");
+                        recordBtn.setBackground(getResources().getDrawable(R.drawable.recorder_btn_r));
+                    } else {
+                        stopRecord();
+                        recordBtn.setText("启动识别");
+                        recordBtn.setBackground(getResources().getDrawable(R.drawable.recorder_btn));
+                    }
+                    isRecording = !isRecording;
                 }
-                return false;
             }
         });
+
+//        recordBtn.setOnLongClickListener(new View.OnLongClickListener() {
+//            @Override
+//            public boolean onLongClick(View v) {
+//                readyRecord();
+//                recordBtn.setText("开始录音");
+//                return true;
+//            }
+//        });
+//        recordBtn.setOnTouchListener(new View.OnTouchListener() {
+//            @Override
+//            public boolean onTouch(View v, MotionEvent event) {
+//                int action = event.getAction();
+//                switch (action) {
+//                    case MotionEvent.ACTION_UP:
+//                        stopRecord();
+//                        recordBtn.setText("按住说话");
+//                        return false;
+//
+//                }
+//                return false;
+//            }
+//        });
         recordConfig = new IdealRecorder.RecordConfig(MediaRecorder.AudioSource.MIC, 48000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
 
     }
@@ -206,8 +238,11 @@ public class MainActivity extends AppCompatActivity {
         if (!file.exists()) {
             file.mkdirs();
         }
-        File wavFile = new File(file, "ideal.wav");
-        return wavFile.getAbsolutePath();
+        this.saveAudioCount = (this.saveAudioCount + 1) % this.maxSaveAudioNum;
+        File wavFile = new File(file, "signal-" + this.saveAudioCount + ".wav");
+        String savePath = wavFile.getAbsolutePath();
+        Log.d("getSaveFilePath", "saveFilePath -> " + savePath);
+        return savePath;
     }
 
 
