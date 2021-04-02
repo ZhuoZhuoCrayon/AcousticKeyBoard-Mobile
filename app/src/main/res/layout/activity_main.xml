@@ -17,7 +17,7 @@
     <jaygoo.widget.wlv.WaveLineView
         android:id="@+id/waveLineView"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="70dp"
         android:layout_below="@+id/wave_view"
         app:wlvBackgroundColor="@color/transparent"
         app:wlvLineColor="@color/green"
@@ -27,14 +27,14 @@
     <TextView
         android:id="@+id/tips"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="100dp"
         android:layout_marginLeft="5dp"
         android:layout_marginRight="5dp"
         android:layout_below="@id/waveLineView"
         android:gravity="left"
         android:scrollbars = "vertical"
         android:textColor="@color/green"
-        android:textSize="30sp" />
+        android:textSize="20sp" />
 
     <LinearLayout
         android:id="@+id/predict_line_layout"
