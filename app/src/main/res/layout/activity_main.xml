@@ -9,7 +9,7 @@
     <tech.oom.idealrecorderdemo.widget.WaveView
         android:id="@+id/wave_view"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
+        android:layout_height="150dp"
         app:baselineColor="@color/transparent"
         app:waveColor="@color/green"
         app:waveStokeWidth="1dp" />
