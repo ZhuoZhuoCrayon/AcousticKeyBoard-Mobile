@@ -58,7 +58,9 @@ public class MainActivity extends AppCompatActivity {
     // shortcut data
     private short[] fragmentationData;
 
-    private List<Short> signalQueue;
+    private List<Integer> signalQueue;
+
+    private ArrayList<Integer> lastSignal;
 
     private Runnable showSignalRunnable = new Runnable() {
 
@@ -97,6 +99,14 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private long sum(List<Integer> array) {
+        long sum = 0;
+        for (int item: array) {
+            sum += item;
+        }
+        return sum;
+    }
+
 
     private final StatusListener statusListener = new StatusListener() {
         @Override
@@ -108,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onRecordData(short[] data, int length) {
 
-            int delay = 6000;
+            int delay = 4800 * 2;
 
             fragmentationData = data;
 
@@ -116,33 +126,38 @@ public class MainActivity extends AppCompatActivity {
             new Thread(showSignalRunnable).start();
 
             synchronized (signalQueue) {
-                for (short vp: data) signalQueue.add(vp);
+                for (int vp: data) signalQueue.add(vp);
                 Log.d("MainActivity", "extend data -> " + signalQueue.size());
 
                 if (signalQueue.size() >= delay) {
-                    int beginIndex = signalQueue.size() - delay;
-                    List<Short> slice = signalQueue.subList(beginIndex, beginIndex + delay);
-                    short maxValue = Collections.max(slice);
+                    int maxValue = Collections.max(signalQueue);
                     if (maxValue > 8000) {
-                        int maxIndex = slice.indexOf(maxValue);
-                        if(maxIndex - 500 >= 0 && maxIndex + 3500 <= signalQueue.size()){
-
+                        int maxIndex = signalQueue.lastIndexOf(maxValue);
+                        if(maxIndex - 450 >= 0 && maxIndex + 1800 <= signalQueue.size()){
                             String label = redressEditText.getText().toString();
-                            List<Short> hitSignal = signalQueue.subList(maxIndex - 500, maxIndex + 3500);
+                            ArrayList<Integer> hitSignal = new ArrayList<>(signalQueue.subList(maxIndex - 450, maxIndex + 1800));
 
-                            Toast.makeText(
-                                    MainActivity.this,
-                                    "准备发送信号: max -> " + maxValue + "label -> " + label,
-                                    Toast.LENGTH_SHORT
-                            ).show();
-                            ModelInstDebugDto modelInstDebugDto = new ModelInstDebugDto(10,  "blstm", label, hitSignal);
-                            AkClient.post(AkApi.modelInstDebug, modelInstDebugDto, modelInstDebugHandler(true));
+                            if (lastSignal == null || sum(hitSignal) != sum(lastSignal)) {
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        "准备发送信号: max -> " + maxValue + "label -> " + label,
+                                        Toast.LENGTH_SHORT
+                                ).show();
+                                for (int vp : hitSignal) {
+                                    System.out.print(vp + " ");
+                                }
+                                System.out.println();
+                                ModelInstDebugDto modelInstDebugDto = new ModelInstDebugDto(10, "blstm", label, hitSignal);
+                                AkClient.post(AkApi.modelInstDebug, modelInstDebugDto, modelInstDebugHandler(true));
+
+                                lastSignal = (ArrayList<Integer>) hitSignal.clone();
+                            }
                         }
                     }
                 }
-
-                if (signalQueue.size() >= 12000) {
-                    signalQueue = signalQueue.subList(signalQueue.size() - 9600, signalQueue.size());
+                int maxWid = delay + 4800;
+                if (signalQueue.size() > maxWid) {
+                    signalQueue = signalQueue.subList(signalQueue.size() - maxWid, signalQueue.size());
                 }
             }
             Log.d("MainActivity", "signalQueue length -> " + signalQueue.size());
@@ -223,6 +238,7 @@ public class MainActivity extends AppCompatActivity {
         isRecording = false;
         fragmentationData = null;
         signalQueue = new ArrayList<>();
+        lastSignal = null;
 
         recordBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -255,11 +271,11 @@ public class MainActivity extends AppCompatActivity {
                 debugBtn.setClickable(false);
                 debugBtn.setBackgroundColor(Color.GRAY);
 
-                List<Short> testSignal = new ArrayList<>();
+                List<Integer> testSignal = new ArrayList<>();
                 String label = redressEditText.getText().toString();
                 Log.d("MainActivity", "redressConfirmBtn label -> " + label);
 
-                for (short i = 0; i < 4000; ++i) testSignal.add(i);
+                for (int i = 0; i < 4000; ++i) testSignal.add(i);
 
                 ModelInstDebugDto modelInstDebugDto = new ModelInstDebugDto(10,  "blstm", label, testSignal);
                 AkClient.post(AkApi.modelInstDebug, modelInstDebugDto, modelInstDebugHandler(false));
