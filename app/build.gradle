@@ -36,4 +36,8 @@ dependencies {
     implementation 'com.github.Jay-Goo:WaveLineView:v1.0.3'
     implementation project(':library')
     // compile 'com.github.ideastudios:IdealRecorder:2.0.4'
+    implementation(platform("com.squareup.okhttp3:okhttp-bom:4.9.1"))
+    implementation("com.squareup.okhttp3:okhttp")
+    implementation("com.squareup.okhttp3:logging-interceptor")
+    implementation 'com.google.code.gson:gson:2.8.6'
 }

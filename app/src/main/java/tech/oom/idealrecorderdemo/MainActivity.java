@@ -1,19 +1,21 @@
 package tech.oom.idealrecorderdemo;
 
 import android.content.DialogInterface;
+import android.graphics.Color;
 import android.media.AudioFormat;
 import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.text.method.ScrollingMovementMethod;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
 import com.yanzhenjie.permission.AndPermission;
 import com.yanzhenjie.permission.Permission;
 import com.yanzhenjie.permission.PermissionListener;
@@ -21,19 +23,25 @@ import com.yanzhenjie.permission.Rationale;
 import com.yanzhenjie.permission.RationaleListener;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import jaygoo.widget.wlv.WaveLineView;
+import okhttp3.*;
 import tech.oom.idealrecorder.IdealRecorder;
 import tech.oom.idealrecorder.StatusListener;
 import tech.oom.idealrecorder.utils.Log;
+import tech.oom.idealrecorderdemo.ak.AkApi;
+import tech.oom.idealrecorderdemo.ak.AkClient;
+import tech.oom.idealrecorderdemo.dto.AkResBase;
+import tech.oom.idealrecorderdemo.dto.ModelInstDebugDto;
 import tech.oom.idealrecorderdemo.widget.WaveView;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final boolean saveAudio = false;
-
-    private int count;
     private int saveAudioCount;
     private boolean isRecording;
 
@@ -50,6 +58,8 @@ public class MainActivity extends AppCompatActivity {
     // shortcut data
     private short[] fragmentationData;
 
+    private List<Short> signalQueue;
+
     private Runnable showSignalRunnable = new Runnable() {
 
         @Override
@@ -59,6 +69,13 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+
+    // 模型矫正
+    private Button redressConfirmBtn;
+    private TextView redressEditText;
+
+    // DEBUG
+    private Button debugBtn;
 
     private final RationaleListener rationaleListener = new RationaleListener() {
         @Override
@@ -91,18 +108,44 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onRecordData(short[] data, int length) {
 
+            int delay = 6000;
+
             fragmentationData = data;
 
             // 开线程记录
             new Thread(showSignalRunnable).start();
 
-            for (short signal: data)
-                System.out.print(signal + " ");
-            System.out.println();
-            synchronized (this) {
-                ++count;
-                Log.d("MainActivity", "current buffer size -> " + length + ", count -> " + count);
+            synchronized (signalQueue) {
+                for (short vp: data) signalQueue.add(vp);
+                Log.d("MainActivity", "extend data -> " + signalQueue.size());
+
+                if (signalQueue.size() >= delay) {
+                    int beginIndex = signalQueue.size() - delay;
+                    List<Short> slice = signalQueue.subList(beginIndex, beginIndex + delay);
+                    short maxValue = Collections.max(slice);
+                    if (maxValue > 8000) {
+                        int maxIndex = slice.indexOf(maxValue);
+                        if(maxIndex - 500 >= 0 && maxIndex + 3500 <= signalQueue.size()){
+
+                            String label = redressEditText.getText().toString();
+                            List<Short> hitSignal = signalQueue.subList(maxIndex - 500, maxIndex + 3500);
+
+                            Toast.makeText(
+                                    MainActivity.this,
+                                    "准备发送信号: max -> " + maxValue + "label -> " + label,
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                            ModelInstDebugDto modelInstDebugDto = new ModelInstDebugDto(10,  "blstm", label, hitSignal);
+                            AkClient.post(AkApi.modelInstDebug, modelInstDebugDto, modelInstDebugHandler(true));
+                        }
+                    }
+                }
+
+                if (signalQueue.size() >= 12000) {
+                    signalQueue = signalQueue.subList(signalQueue.size() - 9600, signalQueue.size());
+                }
             }
+            Log.d("MainActivity", "signalQueue length -> " + signalQueue.size());
         }
 
         @Override
@@ -164,8 +207,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        count = 0;
-        saveAudioCount = 0;
+
         recordBtn = (Button) findViewById(R.id.register_record_btn);
         waveView = (WaveView) findViewById(R.id.wave_view);
         waveLineView = (WaveLineView) findViewById(R.id.waveLineView);
@@ -175,10 +217,12 @@ public class MainActivity extends AppCompatActivity {
         tips.setMovementMethod(new ScrollingMovementMethod());
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN);
 
-        isRecording = false;
 
         // shortcut data
+        saveAudioCount = 0;
+        isRecording = false;
         fragmentationData = null;
+        signalQueue = new ArrayList<>();
 
         recordBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -198,30 +242,71 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-//        recordBtn.setOnLongClickListener(new View.OnLongClickListener() {
-//            @Override
-//            public boolean onLongClick(View v) {
-//                readyRecord();
-//                recordBtn.setText("开始录音");
-//                return true;
-//            }
-//        });
-//        recordBtn.setOnTouchListener(new View.OnTouchListener() {
-//            @Override
-//            public boolean onTouch(View v, MotionEvent event) {
-//                int action = event.getAction();
-//                switch (action) {
-//                    case MotionEvent.ACTION_UP:
-//                        stopRecord();
-//                        recordBtn.setText("按住说话");
-//                        return false;
-//
-//                }
-//                return false;
-//            }
-//        });
+        // 模型矫正
+        redressConfirmBtn = (Button) findViewById(R.id.redress_confirm);
+        redressEditText = (TextView) findViewById(R.id.redress_edit);
+
+        // debug
+        debugBtn = (Button) findViewById(R.id.debug_btn);
+
+        debugBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                debugBtn.setClickable(false);
+                debugBtn.setBackgroundColor(Color.GRAY);
+
+                List<Short> testSignal = new ArrayList<>();
+                String label = redressEditText.getText().toString();
+                Log.d("MainActivity", "redressConfirmBtn label -> " + label);
+
+                for (short i = 0; i < 4000; ++i) testSignal.add(i);
+
+                ModelInstDebugDto modelInstDebugDto = new ModelInstDebugDto(10,  "blstm", label, testSignal);
+                AkClient.post(AkApi.modelInstDebug, modelInstDebugDto, modelInstDebugHandler(false));
+            }
+        });
+
         recordConfig = new IdealRecorder.RecordConfig(MediaRecorder.AudioSource.MIC, 48000, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
 
+    }
+
+    private Callback modelInstDebugHandler(final boolean isSaveSignal) {
+        String tip = "debug成功，后台功能正常";
+        if(isSaveSignal) tip = "已传输数据到后台";
+        final String finalTip = tip;
+
+        return new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                Toast.makeText(MainActivity.this, "接口请求失败", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull final Response response) throws IOException {
+                if (response.isSuccessful()) {
+                    Gson gson = new Gson();
+                    final AkResBase responseObj = gson.fromJson(response.body().string(), AkResBase.class);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (!responseObj.result) {
+                                Toast.makeText(
+                                        MainActivity.this,
+                                        responseObj.code + ": " + responseObj.message, Toast.LENGTH_SHORT
+                                ).show();
+                            } else {
+                                Toast.makeText(MainActivity.this, finalTip, Toast.LENGTH_SHORT).show();
+                            }
+
+                            if(!isSaveSignal) {
+                                debugBtn.setBackgroundColor(0xFF03A9F4);
+                                debugBtn.setClickable(true);
+                            }
+                        }
+                    });
+                }
+            }
+        };
     }
 
     /**

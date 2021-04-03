@@ -62,6 +62,15 @@
             android:singleLine="true"
             android:text="L_SPACE"
             android:textSize="22sp" />
+
+        <Button
+            android:id="@+id/debug_btn"
+            android:layout_width="100dp"
+            android:layout_height="match_parent"
+            android:layout_marginStart="20dp"
+            android:layout_marginBottom="10dp"
+            android:background="@color/blue"
+            android:text="DEBUG" />
     </LinearLayout>
 
     <LinearLayout
@@ -91,6 +100,7 @@
             android:text="A" />
 
         <Button
+            android:id="@+id/redress_confirm"
             android:layout_width="100dp"
             android:layout_height="match_parent"
             android:layout_marginStart="20dp"
