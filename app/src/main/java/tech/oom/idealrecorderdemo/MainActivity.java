@@ -143,10 +143,6 @@ public class MainActivity extends AppCompatActivity {
                                         "准备发送信号: max -> " + maxValue + "label -> " + label,
                                         Toast.LENGTH_SHORT
                                 ).show();
-                                for (int vp : hitSignal) {
-                                    System.out.print(vp + " ");
-                                }
-                                System.out.println();
                                 ModelInstDebugDto modelInstDebugDto = new ModelInstDebugDto(10, "blstm", label, hitSignal);
                                 AkClient.post(AkApi.modelInstDebug, modelInstDebugDto, modelInstDebugHandler(true));
 
